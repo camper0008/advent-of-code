@@ -46,8 +46,8 @@ defmodule Main do
       end
     )
     report = Enum.map(report, fn r -> is_safe(r) end)
-    unsafe_iterations = Enum.count(report, fn x -> x == :unsafe end)
-    if unsafe_iterations > 1, do: :unsafe, else: :safe
+    safe_iterations = Enum.count(report, fn x -> x == :safe end)
+    if safe_iterations != 0, do: :safe, else: :unsafe
   end
 
   def is_safe(report) do
@@ -60,15 +60,17 @@ defmodule Main do
         {:descend, acc} -> descends(acc, v)
     end
     end)
-    if status == :unsafe, do: {:unsafe, report}, else: :safe
+    if status == :unsafe, do: :unsafe, else: :safe
   end
 
   def main() do
     {:ok, content} = File.read("input.txt")
     content = String.split(content, "\n", trim: true);
     reports = Enum.map(content, fn st -> split_and_integerify(st) end)
-    reports = Enum.count(reports, fn report -> is_safe(report) == :safe end)
-    IO.puts(reports)
+    tolerant_reports = Enum.count(reports, fn report -> 
+      if is_safe(report) != :safe, do: tolerant(report) == :safe, else: true
+    end)
+    IO.puts(tolerant_reports)
   end
 end
 
