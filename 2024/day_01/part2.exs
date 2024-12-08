@@ -17,11 +17,15 @@ defmodule Main do
 
   def main() do
     {:ok, content} = File.read("input.txt")
-    content = String.split(content, "\n", trim: true);
-    content = Enum.map(content, 
-      fn st -> split_and_integerify(st) 
-    end)
-    {left, right} = Enum.unzip(content)
+
+    {left, right} =
+      String.split(content, "\n", trim: true)
+      |> Enum.map(
+        content,
+        fn st -> split_and_integerify(st) end
+      )
+      |> Enum.unzip(content)
+
     IO.puts(similarity_score(left, right))
   end
 end
