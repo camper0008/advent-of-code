@@ -13,7 +13,7 @@ defmodule Utils do
 end
 
 defmodule Main do
-  def run_thru_operands_left(operands) do
+  def run_thru_operands(operands) do
     IO.inspect(operands, label: "operands", charlists: :as_lists)
 
     case operands do
@@ -21,9 +21,12 @@ defmodule Main do
         [left + right, left * right]
 
       [left | right] ->
-        results = run_thru_operands_left(right)
+        results =
+          run_thru_operands(right)
+          |> IO.inspect(label: "results", charlists: :as_lists)
+
         sum = results |> Enum.map(fn v -> left + v end)
-        product = results |> Enum.map(fn v -> left + v end)
+        product = results |> Enum.map(fn v -> left * v end)
         sum ++ product
     end
   end
@@ -31,13 +34,13 @@ defmodule Main do
   def find_valid_values({value, operands}) do
     IO.inspect(value, label: "value")
 
-    run_thru_operands_left(operands)
+    run_thru_operands(operands |> Enum.reverse())
     |> IO.inspect(charlists: :as_lists)
     |> Enum.any?(fn v -> v == value end)
   end
 
   def main() do
-    {:ok, content} = File.read("input.example.txt")
+    {:ok, content} = File.read("input.txt")
 
     lines =
       content
@@ -45,6 +48,7 @@ defmodule Main do
       |> Enum.map(&Utils.extract_information/1)
       |> Enum.filter(&Main.find_valid_values/1)
       |> Enum.map(fn {value, _} -> value end)
+      |> Enum.sum()
       |> IO.inspect(charlists: :as_lists)
   end
 end
