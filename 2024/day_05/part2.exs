@@ -62,11 +62,27 @@ defmodule Main do
   end
 
   def reorder_with_rules(page, rules) do
-    page
+    page |> Enum.sort(fn left, right -> ordering(left, right, rules) end)
+  end
+
+  def ordering(left, right, rules) do
+    left_is_before =
+      rules
+      |> Enum.find(fn {bef, aft} ->
+        bef == left and aft == right
+      end) != nil
+
+    right_is_before =
+      rules
+      |> Enum.find(fn {bef, aft} ->
+        bef == right and aft == left
+      end) != nil
+
+    left_is_before or not right_is_before
   end
 
   def main() do
-    {:ok, content} = File.read("input.txt")
+    {:ok, content} = File.read("input.example.txt")
 
     [rules, pages] =
       String.split(content, "\n\n", trim: true)
