@@ -18,7 +18,7 @@ defmodule Main do
   def count_direction(table, x, y) do
     letter = table |> letter_at(x, y)
 
-    if letter != "A" do
+    if letter != "A" or x == 0 or y == 0 do
       false
     else
       corner_00 = letter_at(table, x - 1, y - 1)
