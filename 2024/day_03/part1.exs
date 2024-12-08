@@ -1,15 +1,9 @@
 defmodule Main do
-  def pop(string) do
-    head = String.slice(string, 0, 1)
-    tail = String.slice(string, 1, String.length(string))
-    {head, tail}
-  end
-
   def feed(content, state, statements) do
-    if content == "" do
+    if content == [] do
       statements
     else
-      {head, tail} = pop(content)
+      [head | tail] = content
       head_integer = Integer.parse(head)
 
       case state do
@@ -28,7 +22,7 @@ defmodule Main do
         {:mul, "("} ->
           case head_integer do
             {int, _} -> feed(tail, {:mul, "(", int}, statements)
-            :error -> feed(head <> tail, :blank, statements)
+            :error -> feed(content, :blank, statements)
           end
 
         {:mul, "(", int} when head == "," ->
@@ -41,7 +35,7 @@ defmodule Main do
         {:mul, "(", left, ","} ->
           case head_integer do
             {int, _} -> feed(tail, {:mul, "(", left, ",", int}, statements)
-            :error -> feed(head <> tail, :blank, statements)
+            :error -> feed(content, :blank, statements)
           end
 
         {:mul, "(", old_int} ->
@@ -50,7 +44,7 @@ defmodule Main do
               feed(tail, {:mul, "(", old_int * 10 + int}, statements)
 
             :error ->
-              feed(head <> tail, :blank, statements)
+              feed(content, :blank, statements)
           end
 
         {:mul, "(", left_int, ",", right_int} ->
@@ -59,7 +53,7 @@ defmodule Main do
               feed(tail, {:mul, "(", left_int, ",", right_int * 10 + int}, statements)
 
             :error ->
-              feed(head <> tail, :blank, statements)
+              feed(content, :blank, statements)
           end
 
         _ ->
@@ -70,6 +64,7 @@ defmodule Main do
 
   def main() do
     {:ok, content} = File.read("input.txt")
+    content = String.graphemes(content)
     IO.inspect(Enum.sum(feed(content, :blank, [])), charlists: :as_lists)
   end
 end
