@@ -17,6 +17,6 @@ defmodule Utils do
 
     content
     |> String.split("\n", trim: true)
-    |> Enum.map(fn st -> Utils.split_and_integerify(st) end)
+    |> Enum.map(&Utils.split_and_integerify/1)
   end
 end
