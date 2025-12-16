@@ -1,22 +1,32 @@
 defmodule Utils do
-  @spec split_and_integerify(String.t()) :: {:up | :down, integer}
-  def split_and_integerify(value) do
-    direction =
-      case String.slice(value, 0..0) do
-        "R" -> :up
-        "L" -> :down
-      end
+  @type operation() :: :start | :blank | :split
 
-    {rotations, _rest} = Integer.parse(String.slice(value, 1..String.length(value)))
-    {direction, rotations}
+  @type pos() :: {operation(), {integer, integer}}
+
+  @type item() :: {operation(), pos()}
+
+  @spec parse_line({String.t(), integer()}) :: [item()]
+  def parse_line({line, y}) do
+    line
+    |> String.codepoints()
+    |> Enum.map(fn x ->
+      case x do
+        "S" -> :start
+        "." -> :blank
+        "^" -> :split
+      end
+    end)
+    |> Enum.with_index()
+    |> Enum.map(fn {op, x} -> {op, {x, y}} end)
   end
 
-  @spec prepare_input!(String.t()) :: [{:up | :down, integer}]
+  @spec prepare_input!(String.t()) :: [item()]
   def prepare_input!(filename) when is_binary(filename) do
     {:ok, content} = File.read(filename)
 
     content
     |> String.split("\n", trim: true)
-    |> Enum.map(&Utils.split_and_integerify/1)
+    |> Enum.with_index()
+    |> Enum.flat_map(&Utils.parse_line/1)
   end
 end
