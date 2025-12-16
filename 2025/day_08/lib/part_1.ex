@@ -1,49 +1,45 @@
 defmodule Part1 do
   defp solve(
-         circuits = [%Circuit{} | _],
+         junctions = [%JunctionC{} | _],
          depth
        ) do
-    tree =
-      Utils.permutations(circuits)
+    {lhs, rhs} =
+      Utils.permutations(junctions)
       |> Enum.filter(fn {lhs, rhs} ->
-        length(lhs.parts) == 1 or length(rhs.parts) == 1
+        rhs.junction not in lhs.conns and lhs.junction not in rhs.conns
       end)
-
-    {{closest_lhs, closest_rhs}, _} =
-      tree
-      |> Enum.map(fn {lhs, rhs} -> {{lhs, rhs}, Circuit.dist(lhs, rhs)} end)
-      |> Enum.min_by(fn {_, dist} -> dist end)
+      |> Enum.min_by(fn {lhs, rhs} -> Junction.dist(lhs.junction, rhs.junction) end)
 
     without =
-      circuits
-      |> Enum.filter(&(&1 != closest_lhs and &1 != closest_rhs))
+      junctions
+      |> Enum.filter(&(&1 != lhs and &1 != rhs))
 
-    closest = Circuit.merge(closest_lhs, closest_rhs)
+    lhs = JunctionC.connect(lhs, rhs)
 
-    if depth >= 0 do
-      solve([closest | without], depth - 1)
+    if depth > 0 do
+      solve([lhs, rhs] ++ without, depth - 1)
     else
-      circuits
+      junctions
     end
   end
 
+  defp build_circuits(x) do
+    build_circuits(x, x)
+  end
+
+  defp build_circuits(junction = %JunctionC{}, lookup = [%JunctionC{} | _]) do
+    theirconns = lookup |> Enum.filter(fn x -> x.junction in junction.conns end)
+    IO.inspect(theirconns)
+  end
+
   def main() do
-    circuits = Utils.prepare_input!("input.example.txt")
+    junctions = Utils.prepare_input!("input.example.txt")
 
-    circuits = solve(circuits, 10)
+    junctions = solve(junctions, 10)
 
-    circuits =
-      circuits
-      |> Enum.sort(&(length(&1.parts) > length(&2.parts)))
-      |> IO.inspect()
-
-    circuits =
-      circuits
-      |> Enum.map(&length(&1.parts))
-      |> Enum.sort(&(&1 > &2))
-      |> Enum.take(3)
-      |> Enum.reduce(&(&1 * &2))
-      |> IO.inspect()
+    junctions
+    |> Enum.map(fn x -> build_circuits(x, junctions) end)
+    |> IO.inspect()
 
     "hello"
   end

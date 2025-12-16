@@ -19,33 +19,18 @@ defmodule Junction do
   end
 end
 
-defmodule Circuit do
-  @enforce_keys [:parts]
-  defstruct [:parts]
+defmodule JunctionC do
+  @enforce_keys [:junction, :conns]
+  defstruct [:junction, :conns]
 
   @type t :: %__MODULE__{
-          parts: [Junction.t()]
+          junction: Junction.t(),
+          conns: [Junction.t()]
         }
 
-  @spec dist(Circuit.t(), Circuit.t()) :: number()
-  def dist(%Circuit{} = circuit, %Circuit{} = other) do
-    perms =
-      for x <- circuit.parts do
-        for y <- other.parts do
-          {x, y}
-        end
-      end
-
-    perms = perms |> Enum.flat_map(& &1)
-
-    perms
-    |> Enum.map(fn {lhs, rhs} -> Junction.dist(lhs, rhs) end)
-    |> Enum.min()
-  end
-
-  @spec merge(Circuit.t(), Circuit.t()) :: Circuit.t()
-  def merge(%Circuit{} = lhs, %Circuit{} = rhs) do
-    %Circuit{parts: lhs.parts ++ rhs.parts}
+  @spec connect(JunctionC.t(), JunctionC.t()) :: JunctionC.t()
+  def connect(%JunctionC{} = lhs, %JunctionC{} = rhs) do
+    %JunctionC{lhs | conns: [rhs.junction | lhs.conns]}
   end
 end
 
@@ -58,16 +43,16 @@ defmodule Utils do
     Enum.concat(tail |> Enum.map(fn other -> {item, other} end), permutations(tail))
   end
 
-  @spec split_and_integerify(String.t()) :: Circuit.t()
+  @spec split_and_integerify(String.t()) :: JunctionC.t()
   def split_and_integerify(line) do
     [x, y, z] =
       String.split(line, ",", trim: true)
       |> Enum.map(&String.to_integer/1)
 
-    %Circuit{parts: [%Junction{x: x, y: y, z: z}]}
+    %JunctionC{junction: %Junction{x: x, y: y, z: z}, conns: []}
   end
 
-  @spec prepare_input!(String.t()) :: [Circuit.t()]
+  @spec prepare_input!(String.t()) :: [JunctionC.t()]
   def prepare_input!(filename) when is_binary(filename) do
     {:ok, content} = File.read(filename)
 
