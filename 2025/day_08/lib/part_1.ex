@@ -1,128 +1,50 @@
 defmodule Part1 do
-  defp permutations([_]) do
-    []
-  end
-
-  defp permutations([junction | tail]) do
-    Enum.concat(tail |> Enum.map(fn other -> {junction, other} end), permutations(tail))
-  end
-
-  @spec filter_junction_pairs(
-          [{Junction, Junction}],
-          [Junction]
-        ) :: [{Junction, Junction}]
-  defp filter_junction_pairs(
-         pairs = [{%Junction{}, %Junction{}} | _],
-         pair = [%Junction{} | _]
-       ) do
-    pairs
-    |> Enum.filter(fn {lhs, rhs} ->
-      lhs not in pair and rhs not in pair
-    end)
-  end
-
-  @spec squash_junction_pairs([{Junction, Junction}]) :: [{Junction}]
-  defp squash_junction_pairs(pairs = [{%Junction{}, %Junction{}} | _]) do
-    pairs
-    |> Enum.flat_map(&Tuple.to_list/1)
-    |> Enum.uniq()
-  end
-
   defp solve(
-         junctions = [%Junction{} | _],
-         [] = _circuits,
-         depth
-       ) do
-    [closest | tail] =
-      permutations(junctions)
-      |> Enum.map(fn {lhs, rhs} -> {{lhs, rhs}, Junction.dist(lhs, rhs)} end)
-      |> Enum.sort(fn {_, lhs}, {_, rhs} -> lhs < rhs end)
-      |> Enum.map(fn {pair, _} -> pair end)
-
-    closest = Tuple.to_list(closest)
-
-    junction_tail =
-      filter_junction_pairs(tail, closest)
-      |> squash_junction_pairs()
-
-    solve(junction_tail, [%Circuit{parts: closest}], depth - 1)
-  end
-
-  defp solve(
-         junctions = [%Junction{} | _],
-         circuits = [%Circuit{} | _],
-         depth
-       )
-       when depth == 0 do
-    [junctions, circuits]
-  end
-
-  defp solve(
-         junctions = [%Junction{} | _],
          circuits = [%Circuit{} | _],
          depth
        ) do
-    [{closest_junction, junction_dist} | junction_tail] =
-      permutations(junctions)
-      |> Enum.map(fn {lhs, rhs} -> {{lhs, rhs}, Junction.dist(lhs, rhs)} end)
-      |> Enum.sort(fn {_, lhs}, {_, rhs} -> lhs < rhs end)
-
-    [{{closest_circuit_junction, closest_circuit = %Circuit{}}, circuit_dist} | circuit_tail] =
-      circuits
-      |> Enum.flat_map(fn circuit ->
-        Enum.map(junctions, fn junction ->
-          {{junction, circuit}, Circuit.dist(circuit, junction)}
-        end)
+    tree =
+      Utils.permutations(circuits)
+      |> Enum.filter(fn {lhs, rhs} ->
+        length(lhs.parts) == 1 or length(rhs.parts) == 1
       end)
-      |> Enum.sort(fn {_, lhs}, {_, rhs} -> lhs < rhs end)
 
-    cond do
-      junction_dist < circuit_dist ->
-        closest_junction = Tuple.to_list(closest_junction)
+    {{closest_lhs, closest_rhs}, _} =
+      tree
+      |> Enum.map(fn {lhs, rhs} -> {{lhs, rhs}, Circuit.dist(lhs, rhs)} end)
+      |> Enum.min_by(fn {_, dist} -> dist end)
 
-        junction_tail =
-          junction_tail
-          |> Enum.map(fn {x, _dist} -> x end)
-          |> filter_junction_pairs(closest_junction)
-          |> squash_junction_pairs()
+    without =
+      circuits
+      |> Enum.filter(&(&1 != closest_lhs and &1 != closest_rhs))
 
-        solve(
-          junction_tail,
-          [%Circuit{parts: closest_junction} | circuits],
-          depth - 1
-        )
+    closest = Circuit.merge(closest_lhs, closest_rhs)
 
-      junction_dist > circuit_dist ->
-        junction_tail =
-          junction_tail
-          |> Enum.map(fn {x, _dist} -> x end)
-          |> filter_junction_pairs([closest_circuit_junction])
-          |> squash_junction_pairs()
-
-        circuit_tail =
-          circuit_tail
-          |> Enum.map(fn {{_junction, circuit}, _dist} -> circuit end)
-
-        circuit_tail = [
-          %Circuit{closest_circuit | parts: [closest_circuit_junction | closest_circuit.parts]}
-          | circuit_tail
-        ]
-
-        solve(
-          junction_tail,
-          circuit_tail,
-          depth - 1
-        )
-
-      true ->
-        raise "contract violated"
+    if depth >= 0 do
+      solve([closest | without], depth - 1)
+    else
+      circuits
     end
   end
 
   def main() do
-    junction = Utils.prepare_input!("input.example.txt")
+    circuits = Utils.prepare_input!("input.example.txt")
 
-    x = solve(junction, [], 10)
-    IO.inspect(x)
+    circuits = solve(circuits, 10)
+
+    circuits =
+      circuits
+      |> Enum.sort(&(length(&1.parts) > length(&2.parts)))
+      |> IO.inspect()
+
+    circuits =
+      circuits
+      |> Enum.map(&length(&1.parts))
+      |> Enum.sort(&(&1 > &2))
+      |> Enum.take(3)
+      |> Enum.reduce(&(&1 * &2))
+      |> IO.inspect()
+
+    "hello"
   end
 end

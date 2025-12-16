@@ -27,23 +27,47 @@ defmodule Circuit do
           parts: [Junction.t()]
         }
 
-  @spec dist(Circuit.t(), Junction.t()) :: number()
-  def dist(%Circuit{} = circuit, %Junction{} = other) do
-    circuit.parts |> Enum.map(fn part -> Junction.dist(part, other) end) |> Enum.min()
+  @spec dist(Circuit.t(), Circuit.t()) :: number()
+  def dist(%Circuit{} = circuit, %Circuit{} = other) do
+    perms =
+      for x <- circuit.parts do
+        for y <- other.parts do
+          {x, y}
+        end
+      end
+
+    perms = perms |> Enum.flat_map(& &1)
+
+    perms
+    |> Enum.map(fn {lhs, rhs} -> Junction.dist(lhs, rhs) end)
+    |> Enum.min()
+  end
+
+  @spec merge(Circuit.t(), Circuit.t()) :: Circuit.t()
+  def merge(%Circuit{} = lhs, %Circuit{} = rhs) do
+    %Circuit{parts: lhs.parts ++ rhs.parts}
   end
 end
 
 defmodule Utils do
-  @spec split_and_integerify(String.t()) :: Junction.t()
+  def permutations([_]) do
+    []
+  end
+
+  def permutations([item | tail]) do
+    Enum.concat(tail |> Enum.map(fn other -> {item, other} end), permutations(tail))
+  end
+
+  @spec split_and_integerify(String.t()) :: Circuit.t()
   def split_and_integerify(line) do
     [x, y, z] =
       String.split(line, ",", trim: true)
       |> Enum.map(&String.to_integer/1)
 
-    %Junction{x: x, y: y, z: z}
+    %Circuit{parts: [%Junction{x: x, y: y, z: z}]}
   end
 
-  @spec prepare_input!(String.t()) :: [{:up | :down, integer}]
+  @spec prepare_input!(String.t()) :: [Circuit.t()]
   def prepare_input!(filename) when is_binary(filename) do
     {:ok, content} = File.read(filename)
 
